@@ -7,6 +7,8 @@ import {
   useCallback
 } from 'react'
 
+import { Store, Atom, ActionCreator } from '@reatom/core';
+
 type Unit<T> = ActionCreator<T> | Atom<T>
 type ExtractProps<T> = T extends Unit<infer P>? P: never
 
