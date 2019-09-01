@@ -19,13 +19,13 @@ npm i -S @reatom/react
 
 
 ### useAtom
-Connect atom to the store provided in context and returns atom state from store
+Connects the atom to the store represented in context and returns the state of the atom from the store (or default atom state)
 ```ts
-useAtom(atom: Atom, onlyInit: boolean = true, deps: any[] = []): any
+useAtom(atom: Atom, onlyInit: boolean = true): AtomState
 ```
 
 ### useAction
-Binding action to dispatch from store provided in context
+Binds action with dispatch to the store provided in the context
 ```ts
 useAction(atom: Action, deps: any[] = [])
 ``` 
