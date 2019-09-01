@@ -15,7 +15,7 @@ NPM
 npm i -S @reatom/react
 ```
 
-## Hooks
+## Hooks Api
 
 
 ### useAtom
@@ -27,7 +27,7 @@ useAtom(atom: Atom, onlyInit: boolean = true): AtomState
 ### useAction
 Binds action with dispatch to the store provided in the context
 ```ts
-useAction(atom: Action, deps: any[] = [])
+useAction(action: Action, deps: any[] = []): BindedAction
 ``` 
 
 ## Usage
