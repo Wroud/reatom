@@ -142,7 +142,7 @@ export function declareAtom<State>(
   dependencyMatcher: (
     reduce: <T>(
       dependency: Unit<T>,
-      reducer: (state: State, value: T) => State | undefined,
+      reducer: (state: State, value: T) => State,
     ) => void,
   ) => any,
 ): Atom<State> {
@@ -170,7 +170,7 @@ export function declareAtom<State>(
 
   function reduce<T>(
     dep: Unit<T>,
-    reducer: (state: State, payload: T) => State | undefined,
+    reducer: (state: State, payload: T) => State,
   ) {
     throwIf(
       !initialPhase,
