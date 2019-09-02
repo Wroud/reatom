@@ -2,8 +2,8 @@ console.warn('REAtom still work in progress, do not use it in production')
 
 type NodeId = string
 
-type ActionType = string
-type ActionTypesDictionary = Record<ActionType, true>
+type Dictionary<T> = { [key: string]: T }
+type ActionTypesDictionary = Record<NodeId, true>
 type Node = {
   id: NodeId
   actionTypes: ActionTypesDictionary
@@ -12,7 +12,7 @@ type Node = {
   stackWorker: (ctx: Ctx) => any
 }
 type DependenciesDictionary = Record<NodeId, Node>
-type State = Record<ActionType, any>
+type State = Record<NodeId, any>
 
 const NODE = Symbol('@@REAtom/NODE')
 const assign = Object.assign
@@ -322,13 +322,13 @@ export function map(name, target, mapper) {
 
 // @ts-ignore
 export declare function combine<
-  T extends { [key: string]: Atom<any> } | TupleOfAtoms
+  T extends Dictionary<Atom<any>> | TupleOfAtoms
 >(
   shape: T,
 ): Atom<{ [key in keyof T]: T[key] extends Atom<infer S> ? S : never }>
 // @ts-ignore
 export declare function combine<
-  T extends { [key: string]: Atom<any> } | TupleOfAtoms
+  T extends Dictionary<Atom<any>> | TupleOfAtoms
 >(
   name: string | [string],
   shape: T,
@@ -380,10 +380,10 @@ export type Store = {
 // for prevent using `delete` operator
 // (need perf tests)
 export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
-  const listenersStore = {} as { [key: string]: Function[] }
+  const listenersStore = {} as Dictionary<Function[]>
   const listenersActions: Function[] = []
   const { dependencies: atomDeps, stackWorker } = getNode(atom || defaultAtom)
-  const atomDepsCounters: { [key: string]: number } = {}
+  const atomDepsCounters: Dictionary<number> = {}
   for (const id in atomDeps) atomDepsCounters[id] = 1
 
   const newStack: Stack = []
