@@ -30,23 +30,26 @@ export type Atom<T> = {
 
 type Unit<T = unknown> = ActionCreator<T> | Atom<T>
 
-function throwIf(predicate: any, msg: string) {
+function throwIf(predicate: any, msg: string, ...args: any[]) {
   // TODO: add link to docs with full description
-  if (predicate) throw new Error('[reatom] ' + msg)
+  if (predicate) {
+    let error = formatString(msg, ...args)
+    throw new Error('[reatom] ' + error)
+  }
 }
 function safetyStr(str: any, name: string): string {
-  throwIf(typeof str !== 'string' || str.length === 0, 'Invalid ' + name)
+  throwIf(typeof str !== 'string' || str.length === 0, 'Invalid {0}', name)
   return str
 }
 function safetyFunc(func: any, name: string): Function {
-  throwIf(typeof func !== 'function', 'Invalid ' + name)
+  throwIf(typeof func !== 'function', 'Invalid {0}', name)
   return func
 }
 let id = 0
 function nameToId(name: unknown) {
   return Array.isArray(name)
     ? safetyStr(name[0], 'name')
-    : `${safetyStr(name, 'name')} #${++id}`
+    : safetyStr(name, 'name') + ' #' + ++id
 }
 
 type StackWorker = (ctx: Ctx) => any
@@ -155,7 +158,8 @@ export function declareAtom<State>(
 
   throwIf(
     initialState === undefined,
-    `Atom "${atomId}". Initial state can't be undefined`,
+    'Atom "{0}". Initial state can\'t be undefined',
+    atomId
   )
 
   const atomActionTypes: string[] = []
@@ -171,7 +175,7 @@ export function declareAtom<State>(
   ) {
     throwIf(
       !initialPhase,
-      "Can't define dependencies after atom initialization",
+      'Can\'t define dependencies after atom initialization',
     )
 
     const position = dependencePosition++
@@ -220,7 +224,9 @@ export function declareAtom<State>(
 
         throwIf(
           atomStateNew === undefined,
-          `Invalid state. Reducer № ${position} in "${atomId}" atom returns undefined`,
+          'Invalid state. Reducer № {0} in "{1}" atom returns undefined',
+          position,
+          atomId
         )
 
         if (atomStateNew !== atomState) {
@@ -330,7 +336,7 @@ export function combine(name: any, shape: any) {
   if (arguments.length === 1) {
     // @ts-ignore
     shape = name
-    name = `{${(keys = Object.keys(shape)).join()}}`
+    name = '{' + (keys = Object.keys(shape)).join() + '}'
   }
 
   keys = keys! || Object.keys(shape)
@@ -509,6 +515,15 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
 function callFromList(list: Function[], arg: any, i = -1) {
   while (++i < list.length) list[i](arg)
 }
+
+function formatString(message: string, ...args: any[]) {
+  return message.replace(/{(\d+)}/g, function (match, number) {
+    return typeof args[number] != 'undefined'
+      ? args[number]
+      : match
+      ;
+  });
+};
 
 // prettier-ignore
 type TupleOfAtoms =
