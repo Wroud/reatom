@@ -1,18 +1,15 @@
 console.warn('REAtom still work in progress, do not use it in production')
 
-type NodeId = string
-
 type Dictionary<T> = { [key: string]: T }
-type ActionTypesDictionary = Record<NodeId, true>
 type Node = {
-  id: NodeId
-  actionTypes: ActionTypesDictionary
+  id: string
+  actionTypes: string[]
   // TODO: try to remove it
   dependencies: DependenciesDictionary
   stackWorker: (ctx: Ctx) => any
 }
-type DependenciesDictionary = Record<NodeId, Node>
-type State = Record<NodeId, any>
+type DependenciesDictionary = Dictionary<Node>
+type State = Dictionary<any>
 
 const NODE = Symbol('@@REAtom/NODE')
 const assign = Object.assign
@@ -61,7 +58,7 @@ class Ctx {
   type: string
   payload: any
   stack: Stack
-  changedIds: NodeId[]
+  changedIds: string[]
   constructor(state: State, { type, payload }: Action<any>, stack: Stack) {
     this.state = state
     this.stateNew = {}
@@ -89,7 +86,7 @@ export function declareAction<
 
   const ACNode: Node = {
     id,
-    actionTypes: { [id]: true as const },
+    actionTypes: [id],
     dependencies: {},
     stackWorker: noop,
   }
@@ -161,7 +158,7 @@ export function declareAtom<State>(
     'Atom "' + atomId + '". Initial state can\'t be undefined',
   )
 
-  const atomActionTypes: ActionTypesDictionary = {}
+  const atomActionTypes: string[] = []
   const atomDependencies: DependenciesDictionary = {}
   const atomStack: Stack = []
   // start from `0` for missing `actionDefault`
@@ -193,7 +190,8 @@ export function declareAtom<State>(
 
     throwIf(depDependencies[atomId], 'One of dependencies has the equal id')
 
-    assign(atomActionTypes, depActionTypes)
+    // HELP: if diff needed?
+    atomActionTypes.push(...depActionTypes.filter(v => !atomActionTypes.includes(v)))
     assign(atomDependencies, depDependencies)
     atomDependencies[depId] = depNode
 
@@ -223,12 +221,12 @@ export function declareAtom<State>(
         throwIf(
           atomStateNew === undefined,
           'Invalid state. Reducer №' +
-            position +
-            ' in ' +
-            '"' +
-            atomId +
-            '"' +
-            ' atom returns undefined',
+          position +
+          ' in ' +
+          '"' +
+          atomId +
+          '"' +
+          ' atom returns undefined',
         )
 
         if (atomStateNew !== atomState) {
@@ -239,7 +237,7 @@ export function declareAtom<State>(
     }
 
     atomStack.push(
-      ctx => depActionTypes[ctx.type] && ctx.stack.push(update, depStackWorker),
+      ctx => depActionTypes.includes(ctx.type) && ctx.stack.push(update, depStackWorker),
     )
   }
 
@@ -248,7 +246,7 @@ export function declareAtom<State>(
   atomStack.reverse()
 
   const stackWorker = (ctx: Ctx) =>
-    atomActionTypes[ctx.type] &&
+    atomActionTypes.includes(ctx.type) &&
     ctx.stateNew[atomId] === undefined &&
     ctx.stack.push(...atomStack)
 
@@ -404,7 +402,7 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
     atomDepsCounters[key] = (atomDepsCounters[key] || 0) + 1
   }
 
-  function decrementDeps(id: NodeId) {
+  function decrementDeps(id: string) {
     if (--atomDepsCounters[id] === 0) {
       delete atomDepsCounters[id]
       delete state[id]
