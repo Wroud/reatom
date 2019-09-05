@@ -5,10 +5,9 @@ type Node = {
   id: string
   actionTypes: string[]
   // TODO: try to remove it
-  dependencies: DependenciesDictionary
+  dependencies: Map<string, Node>
   stackWorker: (ctx: Ctx) => any
 }
-type DependenciesDictionary = Dictionary<Node>
 type State = Dictionary<any>
 
 const NODE = Symbol('@@REAtom/NODE')
@@ -90,7 +89,7 @@ export function declareAction<
   const ACNode: Node = {
     id,
     actionTypes: [id],
-    dependencies: {},
+    dependencies: new Map<string, Node>(),
     stackWorker: noop,
   }
 
@@ -163,7 +162,7 @@ export function declareAtom<State>(
   )
 
   const atomActionTypes: string[] = []
-  const atomDependencies: DependenciesDictionary = {}
+  const atomDependencies: Map<string, Node> = new Map<string, Node>()
   const atomStack: Stack = []
   // start from `0` for missing `actionDefault`
   let dependencePosition = 0
@@ -192,12 +191,16 @@ export function declareAtom<State>(
 
     const isDepActionCreator = getIsAction(dep)
 
-    throwIf(depDependencies[atomId], 'One of dependencies has the equal id')
+    throwIf(depDependencies.has(atomId), 'One of dependencies has the equal id')
 
     // HELP: if diff needed?
     atomActionTypes.push(...depActionTypes.filter(v => !atomActionTypes.includes(v)))
-    assign(atomDependencies, depDependencies)
-    atomDependencies[depId] = depNode
+    for (var [key, depDep] of depDependencies) {
+      if (!atomDependencies.has(key)) {
+        atomDependencies.set(key, depDep);
+      }
+    }
+    atomDependencies.set(depId, depNode)
 
     function update(ctx: Ctx) {
       const { state, stateNew, payload } = ctx
@@ -382,7 +385,7 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
   const listenersActions: Function[] = []
   const { dependencies: atomDeps, stackWorker } = getNode(atom || defaultAtom)
   const atomDepsCounters: Dictionary<number> = {}
-  for (const id in atomDeps) atomDepsCounters[id] = 1
+  for (const id of atomDeps.keys()) atomDepsCounters[id] = 1
 
   const newStack: Stack = []
   let stack: Stack = [stackWorker]
@@ -455,7 +458,7 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
         newStack.push(targetStackWorker)
         stack.push(targetStackWorker)
         incrementDeps(targetId)
-        for (const key in targetDeps) incrementDeps(key)
+        for (const key of targetDeps.keys()) incrementDeps(key)
       }
     }
 
@@ -472,7 +475,7 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
           delete listenersStore[targetId]
 
           decrementDeps(targetId)
-          for (const key in targetDeps) decrementDeps(targetDeps[key].id)
+          for (const dep of targetDeps.values()) decrementDeps(dep.id)
 
           stack.splice(stack.indexOf(targetStackWorker), 1)
 
