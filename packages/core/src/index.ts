@@ -46,7 +46,7 @@ let id = 0
 function nameToId(name: unknown) {
   return Array.isArray(name)
     ? safetyStr(name[0], 'name')
-    : safetyStr(name, 'name') + ' #' + ++id
+    : `${safetyStr(name, 'name')} #${++id}`
 }
 
 type StackWorker = (ctx: Ctx) => any
@@ -155,7 +155,7 @@ export function declareAtom<State>(
 
   throwIf(
     initialState === undefined,
-    'Atom "' + atomId + '". Initial state can\'t be undefined',
+    `Atom "${atomId}". Initial state can't be undefined`,
   )
 
   const atomActionTypes: string[] = []
@@ -220,13 +220,7 @@ export function declareAtom<State>(
 
         throwIf(
           atomStateNew === undefined,
-          'Invalid state. Reducer №' +
-          position +
-          ' in ' +
-          '"' +
-          atomId +
-          '"' +
-          ' atom returns undefined',
+          `Invalid state. Reducer № ${position} in "${atomId}" atom returns undefined`,
         )
 
         if (atomStateNew !== atomState) {
@@ -336,7 +330,7 @@ export function combine(name: any, shape: any) {
   if (arguments.length === 1) {
     // @ts-ignore
     shape = name
-    name = '{' + (keys = Object.keys(shape)).join() + '}'
+    name = `{${(keys = Object.keys(shape)).join()}}`
   }
 
   keys = keys! || Object.keys(shape)
