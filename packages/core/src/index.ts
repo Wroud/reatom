@@ -29,23 +29,23 @@ export type Atom<T> = {
 
 type Unit<T = unknown> = ActionCreator<T> | Atom<T>
 
-function throwIf(predicate: any, msg: string, ...args: any[]) {
+function throwError(error: string) {
   // TODO: add link to docs with full description
-  if (predicate) {
-    let error = formatString(msg, ...args)
-    throw new Error('[reatom] ' + error)
-  }
+  throw new Error('[reatom] ' + error)
 }
-function safetyStr(str: any, name: string): string {
-  throwIf(typeof str !== 'string' || str.length === 0, 'Invalid {0}', name)
+function safetyStr(str: string, name: string): string {
+  if (typeof str !== 'string' || str.length === 0)
+    throwError(`Invalid ${name}`)
   return str
 }
-function safetyFunc(func: any, name: string): Function {
-  throwIf(typeof func !== 'function', 'Invalid {0}', name)
+function safetyFunc<T extends Function>(func: T, name: string): T {
+  if (typeof func !== 'function') {
+    throwError(`Invalid ${name}`)
+  }
   return func
 }
 let id = 0
-function nameToId(name: unknown) {
+function nameToId(name: Array<string> | string) {
   return Array.isArray(name)
     ? safetyStr(name[0], 'name')
     : safetyStr(name, 'name') + ' #' + ++id
@@ -155,10 +155,8 @@ export function declareAtom<State>(
 
   const atomId = nameToId(name)
 
-  throwIf(
-    initialState === undefined,
-    'Atom "{0}". Initial state can\'t be undefined',
-    atomId
+  initialState === undefined && throwError(
+    `Atom "${atomId}". Initial state can't be undefined`
   )
 
   const atomActionTypes: string[] = []
@@ -172,14 +170,13 @@ export function declareAtom<State>(
     dep: Unit<T>,
     reducer: (state: State, payload: T) => State,
   ) {
-    throwIf(
-      !initialPhase,
-      'Can\'t define dependencies after atom initialization',
+    !initialPhase && throwError(
+      'Can\'t define dependencies after atom initialization'
     )
 
     const position = dependencePosition++
     let depNode!: Node
-    throwIf(!dep || !(depNode = dep[NODE]), 'Invalid dependency')
+    (!dep || !(depNode = dep[NODE])) && throwError('Invalid dependency')
     safetyFunc(reducer, 'reducer')
 
     const {
@@ -191,7 +188,7 @@ export function declareAtom<State>(
 
     const isDepActionCreator = getIsAction(dep)
 
-    throwIf(depDependencies.has(atomId), 'One of dependencies has the equal id')
+    depDependencies.has(atomId) && throwError('One of dependencies has the equal id')
 
     // HELP: if diff needed?
     atomActionTypes.push(...depActionTypes.filter(v => !atomActionTypes.includes(v)))
@@ -225,11 +222,8 @@ export function declareAtom<State>(
       if (isDepActionCreator || isDepChanged || isAtomLazy) {
         const atomStateNew = reducer(atomState, depValue)
 
-        throwIf(
-          atomStateNew === undefined,
-          'Invalid state. Reducer № {0} in "{1}" atom returns undefined',
-          position,
-          atomId
+        atomStateNew === undefined && throwError(
+          `Invalid state. Reducer № ${position} in "${atomId}" atom returns undefined`,
         )
 
         if (atomStateNew !== atomState) {
@@ -417,7 +411,7 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
 
     if (target === undefined) return assign({}, state)
 
-    throwIf(!getIsAtom(target), 'Invalid target')
+    !getIsAtom(target) && throwError('Invalid target')
 
     const targetState = getState(state, target)
     if (targetState !== undefined) return targetState
@@ -445,7 +439,7 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
     }
 
     const target = a[0] as Atom<any>
-    throwIf(!getIsAtom(target), 'Target is not Atom')
+    !getIsAtom(target) && throwError('Target is not Atom')
     const targetNode = target[NODE]
     const targetId = targetNode.id
     const targetStackWorker = targetNode.stackWorker
@@ -487,12 +481,9 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
   }
 
   function dispatch(action: Action<any>) {
-    throwIf(
-      typeof action !== 'object' ||
+    (typeof action !== 'object' ||
       action === null ||
-      typeof action.type !== 'string',
-      'Invalid action',
-    )
+      typeof action.type !== 'string') && throwError('Invalid action')
 
     actualizeState()
 
@@ -518,15 +509,6 @@ export function createStore(atom?: Atom<any>, preloadedState = {}): Store {
 function callFromList(list: Function[], arg: any, i = -1) {
   while (++i < list.length) list[i](arg)
 }
-
-function formatString(message: string, ...args: any[]) {
-  return message.replace(/{(\d+)}/g, function (match, number) {
-    return typeof args[number] != 'undefined'
-      ? args[number]
-      : match
-      ;
-  });
-};
 
 // prettier-ignore
 type TupleOfAtoms =
