@@ -2,7 +2,7 @@
   "packages": [
     "packages/*"
   ],
-  "hoist": false,
+  "hoist": true,
   "version": "independent",
   "npmClient": "npm",
   "npmClientArgs": [
