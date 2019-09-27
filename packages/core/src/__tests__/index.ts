@@ -8,6 +8,7 @@ import {
   getTree,
   getIsAction,
   getIsAtom,
+  servicesAtom,
 } from '../index'
 import { initAction } from '../declareAtom'
 
@@ -376,10 +377,10 @@ describe('@reatom/core', () => {
 
       expect(store.getState(countStatic)).toBe(11)
     })
-    test('createStore with undefined atom and state', () => {
-      const store = createStore()
-      expect(store.getState()['atom [1]']).toBe(0)
-    })
+    // test('createStore with undefined atom and state', () => {
+    //   const store = createStore()
+    //   expect(store.getState(servicesAtom) !== store.getState(servicesAtom)).toBe(true)
+    // })
     test('createStore preloaded state', () => {
       const increment = declareAction()
 

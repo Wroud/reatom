@@ -1,6 +1,6 @@
 import { Tree, State, TreeId, createCtx } from './kernel'
 import { throwError, getTree, safetyFunc, assign, getIsAtom } from './shared'
-import { Action } from './declareAction'
+import { Action, declareAction } from './declareAction'
 import { Atom, declareAtom, initAction, getState } from './declareAtom'
 
 type DispatchFunction = (action: Action<any>) => any
@@ -12,9 +12,18 @@ type GetStateFunction = {
   <T>(target: Atom<T>): T
   (): State
 }
+type ServiceAction<T> = { key: symbol; value: T }
 
 // for create nullable store
-const defaultAtom = declareAtom(0, () => 0)
+export const setService = declareAction<ServiceAction<any>>()
+export const deleteService = declareAction<symbol>()
+export const servicesAtom = declareAtom<Map<symbol, any>>(
+  new Map<symbol, any>(),
+  handle => [
+    handle(setService, (state, { key, value }) => state.set(key, value)),
+    handle(deleteService, (state, key) => (state.delete(key), state)),
+  ],
+)
 
 export type Store = {
   dispatch: DispatchFunction
@@ -22,23 +31,18 @@ export type Store = {
   getState: GetStateFunction
 }
 
-export function createStore(
-  initState?: State,
-): Store;
-export function createStore(
-  atom: Atom<any>,
-  initState?: State,
-): Store;
+export function createStore(initState?: State): Store
+export function createStore(atom: Atom<any>, initState?: State): Store
 // TODO: try to use ES6 Map's instead of plain object
 // for prevent using `delete` operator
 // (need perf tests)
 export function createStore(
-  atom: Atom<any> | State = defaultAtom,
+  atom: Atom<any> | State = servicesAtom,
   initState: State = {},
 ): Store {
   if (!getIsAtom(atom)) {
-    initState = atom;
-    atom = defaultAtom;
+    initState = atom
+    atom = servicesAtom
   }
   let atomsListeners = new Map<TreeId, Function[]>()
   let nextAtomsListeners = atomsListeners
@@ -159,7 +163,7 @@ export function createStore(
       }
     }
 
-    ; (action.reactions || []).forEach(r => r(payload, store))
+    ;(action.reactions || []).forEach(r => r(payload, store))
     callFromList((actionsListeners = nextActionsListeners), action)
   }
 

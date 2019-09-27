@@ -20,7 +20,10 @@ export const initAction = _initAction()
 type AtomsMap = { [key: string]: Atom<any> }
 type Reducer<TState, TValue> = (state: TState, value: TValue) => TState
 type DependencyMatcher<TState> = (
-  on: <T>(dependency: Unit | ActionCreator<T>, reducer: Reducer<TState, T>) => void,
+  on: <T>(
+    dependency: Unit | ActionCreator<T>,
+    reducer: Reducer<TState, T>,
+  ) => void,
 ) => any
 
 export interface Atom<T> extends Unit {
@@ -59,7 +62,10 @@ export function declareAtom<TState>(
   if (initialState === undefined)
     throwError(`Atom "${_id}". Initial state can't be undefined`)
 
-  function reduce<T>(dep: Unit | ActionCreator<T>, reducer: Reducer<TState, T>) {
+  function reduce<T>(
+    dep: Unit | ActionCreator<T>,
+    reducer: Reducer<TState, T>,
+  ) {
     if (!initialPhase)
       throwError("Can't define dependencies after atom initialization")
 
@@ -75,7 +81,7 @@ export function declareAtom<TState>(
 
     if (isDepActionCreator) _tree.addFn(update, depId)
     else {
-      ; (dep as Atom<any>)[DEPS].forEach(treeId => _deps.add(treeId))
+      ;(dep as Atom<any>)[DEPS].forEach(treeId => _deps.add(treeId))
       if (_deps.has(depId)) throwError('One of dependencies has the equal id')
       _deps.add(depId)
       depTree.fnsMap.forEach((_, key) => _tree.addFn(update, key))
